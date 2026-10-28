@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>FFXIV Fishing Log - Asdale Dynamics</title>
+<meta name="description" content="Manual-entry Final Fantasy XIV fishing tracker: spots, Eorzean windows, weather and bait notes, wish list, push list, milestone log. Offline, single file, localStorage only.">
+<style>
+:root{
+  --bg:#0d1520; --panel:#152233; --panel2:#1b2c42; --ink:#e8eef7; --muted:#93a4ba;
+  --line:#2a3d57; --accent:#3fa7d6; --ok:#39b26a; --warn:#d69e3f; --danger:#d65b5b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.topbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#12202f,#0d1520)}
+.brand h1{margin:0;font-size:1.25rem}
+.tagline{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+.clock{text-align:right}
+.et-time{font-size:1.6rem;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.et-label{color:var(--muted);font-size:.8rem}
+.real-date{display:block;color:var(--muted);font-size:.75rem}
+nav.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line);background:#0f1a28}
+.tab{background:none;border:1px solid transparent;border-bottom:none;color:var(--muted);padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font:inherit;font-size:.95rem}
+.tab:hover{color:var(--ink)}
+.tab.active{background:var(--panel);color:var(--ink);border-color:var(--line)}
+main{max-width:980px;margin:0 auto;padding:16px 20px 60px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.chipbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 12px;font-size:.85rem}
+.chipbtn.active{color:var(--ink);border-color:var(--accent)}
+.spacer{flex:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:14px 0;overflow:hidden}
+.spot-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;background:var(--panel2);border:none;width:100%;text-align:left;font-size:1rem}
+.spot-head h3{margin:0;font-size:1.05rem;flex:1;color:var(--ink)}
+.spot-head .caret{width:0;height:0;border-left:6px solid var(--muted);border-top:5px solid transparent;border-bottom:5px solid transparent;transition:transform .15s;flex:none}
+.spot.expanded .spot-head .caret{transform:rotate(90deg)}
+.spot-body{padding:12px 16px;border-top:1px solid var(--line)}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:600;letter-spacing:.02em}
+.water-salt{background:rgba(63,167,214,.18);color:#7cc4e8;border:1px solid rgba(63,167,214,.4)}
+.water-fresh{background:rgba(57,178,106,.18);color:#7fd8a4;border:1px solid rgba(57,178,106,.4)}
+.st-caught{background:rgba(57,178,106,.18);color:#7fd8a4}
+.st-needed{background:rgba(214,158,63,.15);color:#e8b86a}
+.rank{background:rgba(214,158,63,.18);color:#f0c67e;border:1px solid rgba(214,158,63,.45)}
+.kind-auto{background:rgba(63,167,214,.15);color:#7cc4e8}
+.kind-manual{background:rgba(214,158,63,.15);color:#e8b86a}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.75rem;font-variant-numeric:tabular-nums}
+.chip.open{background:rgba(57,178,106,.2);color:#8fe0b0}
+.chip.closed{background:rgba(147,164,186,.12);color:var(--muted)}
+.chip.none{background:transparent;color:var(--muted);border:1px dashed var(--line)}
+.fish-row{padding:10px 0;border-bottom:1px dashed var(--line)}
+.fish-row:last-child{border-bottom:none}
+.fish-row.is-caught .fish-name{text-decoration:line-through;opacity:.7}
+.fish-main{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fish-meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0;color:var(--muted);font-size:.85rem;align-items:center}
+.fish-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+button{font:inherit;cursor:pointer;background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:5px 10px;border-radius:8px;font-size:.85rem}
+button:hover{border-color:var(--accent)}
+button.danger{color:#f0a3a3}
+button.primary{background:var(--accent);border-color:var(--accent);color:#04121c;font-weight:600}
+input,select,textarea{font:inherit;background:#0f1a28;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+form.inline-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#0f1a28;border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0}
+form.inline-form label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
+details.box{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 12px;margin:10px 0}
+details.box summary{cursor:pointer;color:var(--accent);font-weight:600}
+.flash{border-radius:10px;padding:10px 14px;margin:12px 0;font-size:.9rem}
+.flash.ok{background:rgba(57,178,106,.15);border:1px solid rgba(57,178,106,.4);color:#9fe0bb}
+.flash.err{background:rgba(214,91,91,.15);border:1px solid rgba(214,91,91,.4);color:#f0b3b3}
+.push-row,.log-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+.push-row:last-child,.log-row:last-child{border-bottom:none}
+.push-num{font-weight:700;color:var(--warn);min-width:28px;text-align:right}
+.log-body{flex:1;min-width:220px}
+.log-date{color:var(--muted);font-size:.8rem}
+code.win{background:#0f1a28;padding:1px 6px;border-radius:6px;font-size:.8rem}
+.count{color:var(--muted);font-size:.8rem;flex:none}
+.empty{color:var(--muted);padding:20px;text-align:center}
+.hint{color:var(--muted);font-size:.85rem}
+.section-title{margin:18px 0 6px;font-size:1rem}
+footer{max-width:980px;margin:0 auto;padding:20px;color:var(--muted);font-size:.8rem;text-align:center}
+@media (max-width:640px){.topbar{flex-direction:column;align-items:flex-start}.clock{text-align:left}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>FFXIV Fishing Log</h1>
+    <p class="tagline">Manual catch tracking &middot; Eorzean windows &middot; wish list &amp; push list</p>
+  </div>
+  <div class="clock" aria-live="off">
+    <span id="et-clock" class="et-time">--:--</span><span class="et-label"> Eorzean time</span>
+    <span id="real-date" class="real-date"></span>
+  </div>
+  <div class="toolbar">
+    <button data-action="export">Export backup</button>
+    <label for="import-file" style="cursor:pointer;font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:5px 10px;border-radius:8px;font-size:.85rem;display:inline-block">Import backup</label>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+    <button class="danger" data-action="reset">Reset all</button>
+  </div>
+</header>
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <button class="tab" data-action="tab" data-tab="spots">Spots</button>
+  <button class="tab" data-action="tab" data-tab="wishlist">Wish List</button>
+  <button class="tab" data-action="tab" data-tab="push">Push List</button>
+  <button class="tab" data-action="tab" data-tab="log">Milestone Log</button>
+</nav>
+<main id="app-root" aria-live="polite"></main>
+<footer>
+  Unofficial fan tool for Final Fantasy XIV. All data stays in your browser (localStorage) - no network, no tracking.
+  Manual entry only: no bots, no packet sniffing, in line with the game's Terms of Service.
+  &copy; 2026 Asdale Dynamics, LLC &middot; MIT License.
+</footer>
+<script id="app-js">
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function mod(n, m){ return ((n % m) + m) % m; }
+
+function eorzeanMinutesFromUTC(utcMs){
+  var within = mod(utcMs, 4200000);
+  return Math.floor(within * 1440 / 4200000);
+}
+function eorzeanMinutesNow(){ return eorzeanMinutesFromUTC(Date.now()); }
+function etMinutesToRealMs(eMin){ return (eMin * 4200000) / 1440; }
+
+function parseWindow(str){
+  if (typeof str !== 'string') return null;
+  var m = str.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  var h1 = +m[1], m1 = +m[2], h2 = +m[3], m2 = +m[4];
+  if (h1 > 23 || m1 > 59 || h2 > 23 || m2 > 59) return null;
+  var start = h1 * 60 + m1, end = h2 * 60 + m2;
+  if (start === end) return null;
+  return { start: start, end: end };
+}
+function fmtEorzean(eMin){
+  eMin = mod(Math.floor(eMin), 1440);
+  return pad2(Math.floor(eMin / 60)) + ':' + pad2(eMin % 60);
+}
+function fmtWindow(w){ return fmtEorzean(w.start) + '-' + fmtEorzean(w.end); }
+function inWindow(w, eMin){
+  var t = mod(Math.floor(eMin), 1440);
+  if (w.end > w.start) return t >= w.start && t < w.end;
+  return t >= w.start || t < w.end;
+}
+function minutesUntilOpen(w, eMin){
+  if (inWindow(w, eMin)) return 0;
+  var delta = w.start - mod(Math.floor(eMin), 1440);
+  if (delta <= 0) delta += 1440;
+  return delta;
+}
+function minutesUntilClose(w, eMin){
+  if (!inWindow(w, eMin)) return 0;
+  var delta = w.end - mod(Math.floor(eMin), 1440);
+  if (delta <= 0) delta += 1440;
+  return delta;
+}
+function fmtEorzeanDur(min){
+  min = Math.round(min);
+  var h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? h + 'h ' + pad2(m) + 'm' : m + 'm';
+}
+function fmtRealDur(ms){
+  var s = Math.round(ms / 1000);
+  var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return h + 'h ' + pad2(m) + 'm';
+  if (m > 0) return m + 'm ' + pad2(sec) + 's';
+  return sec + 's';
+}
+function describeWindow(w, eMin){
+  if (inWindow(w, eMin)) {
+    var c = minutesUntilClose(w, eMin);
+    return { open: true, text: 'Open now - closes in ' + fmtEorzeanDur(c) + ' ET (~' + fmtRealDur(etMinutesToRealMs(c)) + ' real)' };
+  }
+  var o = minutesUntilOpen(w, eMin);
+  return { open: false, text: 'Closed - opens in ' + fmtEorzeanDur(o) + ' ET (~' + fmtRealDur(etMinutesToRealMs(o)) + ' real)' };
+}
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function makeId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function migrateData(raw){
+  var d = raw && typeof raw === 'object' ? raw : {};
+  var out = { version: 1, spots: [], pushList: [], milestones: [] };
+  if (Array.isArray(d.spots)) {
+    d.spots.forEach(function(s, i){
+      if (!s || typeof s !== 'object') return;
+      var spot = {
+        id: String(s.id || ('spot-' + i + '-' + makeId())),
+        name: String(s.name || 'Unnamed spot'),
+        water: s.water === 'salt' ? 'salt' : 'fresh',
+        notes: String(s.notes || ''),
+        fish: []
+      };
+      if (Array.isArray(s.fish)) {
+        s.fish.forEach(function(f, j){
+          if (!f || typeof f !== 'object') return;
+          var pw = parseWindow(f.window || '');
+          var rank = (typeof f.rank === 'number' && isFinite(f.rank) && f.rank > 0) ? Math.floor(f.rank) : null;
+          spot.fish.push({
+            id: String(f.id || ('fish-' + i + '-' + j + '-' + makeId())),
+            name: String(f.name || 'Unnamed fish'),
+            window: pw ? fmtWindow(pw) : '',
+            weather: String(f.weather || ''),
+            bait: String(f.bait || ''),
+            caught: !!f.caught,
+            rank: rank
+          });
+        });
+      }
+      out.spots.push(spot);
+    });
+  }
+  if (Array.isArray(d.pushList)) {
+    d.pushList.forEach(function(id){
+      if (typeof id === 'string' && out.pushList.indexOf(id) < 0) out.pushList.push(id);
+    });
+  }
+  if (Array.isArray(d.milestones)) {
+    d.milestones.forEach(function(m){
+      if (!m || typeof m !== 'object') return;
+      out.milestones.push({
+        id: String(m.id || makeId()),
+        ts: (typeof m.ts === 'number' && isFinite(m.ts)) ? m.ts : Date.now(),
+        text: String(m.text || ''),
+        kind: m.kind === 'manual' ? 'manual' : 'auto'
+      });
+    });
+  }
+  return out;
+}
+
+var STORAGE_KEY = 'ffxiv-fishing-log-v1';
+var state = {
+  data: null,
+  ui: { tab: 'spots', filter: 'all', expandedSpot: null, editingFish: null, flash: null }
+};
+
+function el(id){ return document.getElementById(id); }
+function load(){
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return migrateData(JSON.parse(raw));
+  } catch (e) { return null; }
+}
+function save(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); }
+  catch (e) { state.ui.flash = { msg: 'Could not save to localStorage. Use Export backup to keep your data.', ok: false }; }
+}
+function buildSeed(){
+  return {
+    spots: [
+      { id: 's1', name: "Hollowbragg Bush - Central Shroud", water: 'fresh',
+        notes: 'Sample data: edit or delete me, then add your real spots.',
+        fish: [
+          { id: 'f1', name: 'Mazlayquar Trout', window: '08:00-12:00', weather: 'Fair or Clear skies', bait: 'Pill Bug', caught: true, rank: null },
+          { id: 'f2', name: 'Pipira', window: '', weather: '', bait: 'Crayfish', caught: false, rank: null }
+        ] },
+      { id: 's2', name: "Window's Perch - Coerthas Western Highlands", water: 'fresh',
+        notes: 'Sample data: verify windows and weather in game before your trip.',
+        fish: [
+          { id: 'f3', name: 'Icepick', window: '10:00-14:00', weather: 'Snow', bait: 'Stonefly Nymph', caught: false, rank: 3 }
+        ] },
+      { id: 's3', name: 'The Rhotano Sea', water: 'salt',
+        notes: 'Sample saltwater spot.',
+        fish: [
+          { id: 'f4', name: "Navigator's Dagger", window: '20:00-04:00', weather: 'Clear or Fair skies', bait: 'Rat Tail', caught: false, rank: 1 },
+          { id: 'f5', name: 'Coral Manta', window: '12:00-16:00', weather: '', bait: 'Lugworm', caught: false, rank: 2 }
+        ] }
+    ],
+    pushList: ['f4', 'f3'],
+    milestones: [
+      { id: 'm1', ts: Date.now(), text: 'Welcome to your fishing log! Sample data is loaded - edit or delete it anytime.', kind: 'manual' }
+    ]
+  };
+}
+
+function allFish(){
+  var out = [];
+  state.data.spots.forEach(function(spot){
+    spot.fish.forEach(function(fish){ out.push({ spot: spot, fish: fish }); });
+  });
+  return out;
+}
+function findFish(id){
+  var spots = state.data.spots;
+  for (var i = 0; i < spots.length; i++) {
+    for (var j = 0; j < spots[i].fish.length; j++) {
+      if (spots[i].fish[j].id === id) return { spot: spots[i], fish: spots[i].fish[j] };
+    }
+  }
+  return null;
+}
+function spotCount(spot){
+  var total = spot.fish.length, done = 0;
+  spot.fish.forEach(function(f){ if (f.caught) done++; });
+  return done + '/' + total;
+}
+function flash(msg, ok){ state.ui.flash = { msg: msg, ok: ok !== false }; }
+
+function fv(fd, name){ return ((fd.get(name) || '') + '').trim(); }
+
+function render(){
+  renderTabs();
+  var root = el('app-root');
+  var f = state.ui.flash;
+  state.ui.flash = null;
+  var html = f ? '<div class="flash ' + (f.ok ? 'ok' : 'err') + '">' + esc(f.msg) + '</div>' : '';
+  var tab = state.ui.tab;
+  if (tab === 'wishlist') html += wishlistHtml();
+  else if (tab === 'push') html += pushHtml();
+  else if (tab === 'log') html += logHtml();
+  else html += spotsHtml();
+  root.innerHTML = html;
+}
+function renderTabs(){
+  var tabs = document.querySelectorAll('#tabs .tab');
+  for (var i = 0; i < tabs.length; i++) {
+    var t = tabs[i];
+    if (t.classList) t.classList[t.getAttribute('data-tab') === state.ui.tab ? 'add' : 'remove']('active');
+  }
+}
+
+function chipHtml(fish){
+  if (!fish.window) return '<span class="chip none">No window set</span>';
+  var w = parseWindow(fish.window);
+  if (!w) return '<span class="chip none">Invalid window</span>';
+  var d = describeWindow(w, eorzeanMinutesNow());
+  return '<span class="chip ' + (d.open ? 'open' : 'closed') + '" data-chip-window data-window="' + esc(fmtWindow(w)) + '">' + esc(d.text) + '</span>';
+}
+function windowTextHtml(fish){
+  if (!fish.window) return '';
+  return '<span><code class="win">' + esc(fish.window) + '</code> ET</span>';
+}
+function fishFormHtml(kind, spot, fish){
+  var v = fish || { name: '', window: '', weather: '', bait: '', rank: null };
+  return '<form class="inline-form" data-form="' + kind + '" data-spot="' + esc(spot.id) + '"' + (fish ? ' data-fish="' + esc(fish.id) + '"' : '') + '>' +
+    '<label>Fish name<input name="name" required value="' + esc(v.name) + '"></label>' +
+    '<label>Window (Eorzean)<input name="window" placeholder="8:00-12:00" value="' + esc(v.window) + '"></label>' +
+    '<label>Weather notes<input name="weather" placeholder="e.g. Snow" value="' + esc(v.weather) + '"></label>' +
+    '<label>Bait<input name="bait" placeholder="e.g. Pill Bug" value="' + esc(v.bait) + '"></label>' +
+    '<label>Wish rank<input name="rank" type="number" min="1" placeholder="-" value="' + (v.rank == null ? '' : esc(v.rank)) + '"></label>' +
+    '<button type="submit" class="primary">' + (fish ? 'Save fish' : 'Add fish') + '</button>' +
+    (fish ? '<button type="button" data-action="cancel-edit">Cancel</button>' : '') +
+    '</form>';
+}
+function fishRowHtml(spot, fish){
+  var editing = state.ui.editingFish === fish.id;
+  var inPush = state.data.pushList.indexOf(fish.id) >= 0;
+  var html = '<div class="fish-row' + (fish.caught ? ' is-caught' : '') + '">' +
+    '<div class="fish-main">' +
+      '<span class="fish-name"><strong>' + esc(fish.name) + '</strong></span>' +
+      (fish.rank != null ? '<span class="badge rank">Wish #' + fish.rank + '</span>' : '') +
+      '<span class="badge ' + (fish.caught ? 'st-caught' : 'st-needed') + '">' + (fish.caught ? 'Caught' : 'Still needed') + '</span>' +
+    '</div>' +
+    '<div class="fish-meta">' +
+      chipHtml(fish) + windowTextHtml(fish) +
+      (fish.weather ? '<span>Weather: ' + esc(fish.weather) + '</span>' : '') +
+      (fish.bait ? '<span>Bait: ' + esc(fish.bait) + '</span>' : '') +
+    '</div>' +
+    '<div class="fish-actions">' +
+      '<button data-action="toggle-caught" data-fish="' + esc(fish.id) + '">' + (fish.caught ? 'Mark needed' : 'Mark caught') + '</button>' +
+      (!fish.caught && !inPush ? '<button data-action="push-add" data-fish="' + esc(fish.id) + '">Add to push list</button>' : '') +
+      '<button data-action="edit-fish" data-fish="' + esc(fish.id) + '">Edit</button>' +
+      '<button class="danger" data-action="delete-fish" data-fish="' + esc(fish.id) + '">Delete</button>' +
+    '</div>' +
+    (editing ? fishFormHtml('edit-fish', spot, fish) : '') +
+    '</div>';
+  return html;
+}
+function spotsHtml(){
+  var filter = state.ui.filter;
+  var html = '<div class="toolbar">' +
+    '<button class="chipbtn' + (filter === 'all' ? ' active' : '') + '" data-action="filter" data-filter="all">All</button>' +
+    '<button class="chipbtn' + (filter === 'salt' ? ' active' : '') + '" data-action="filter" data-filter="salt">Saltwater</button>' +
+    '<button class="chipbtn' + (filter === 'fresh' ? ' active' : '') + '" data-action="filter" data-filter="fresh">Freshwater</button>' +
+    '<span class="spacer"></span><span class="hint">' + state.data.spots.length + ' spot' + (state.data.spots.length === 1 ? '' : 's') + '</span>' +
+    '</div>';
+  var shown = state.data.spots.filter(function(s){ return filter === 'all' || s.water === filter; });
+  if (!shown.length) {
+    html += '<div class="empty">No spots' + (filter !== 'all' ? ' for this filter' : '') + '. Add one below.</div>';
+  }
+  shown.forEach(function(spot){
+    var expanded = state.ui.expandedSpot === spot.id;
+    html += '<section class="card spot' + (expanded ? ' expanded' : '') + '">' +
+      '<button class="spot-head" data-action="toggle-spot" data-spot="' + esc(spot.id) + '" aria-expanded="' + (expanded ? 'true' : 'false') + '">' +
+        '<span class="caret" aria-hidden="true"></span>' +
+        '<h3>' + esc(spot.name) + '</h3>' +
+        '<span class="badge ' + (spot.water === 'salt' ? 'water-salt' : 'water-fresh') + '">' + (spot.water === 'salt' ? 'Saltwater' : 'Freshwater') + '</span>' +
+        '<span class="count">' + spotCount(spot) + ' caught</span>' +
+      '</button>';
+    if (expanded) {
+      html += '<div class="spot-body">';
+      if (spot.notes) html += '<p class="hint">' + esc(spot.notes) + '</p>';
+      if (!spot.fish.length) html += '<div class="empty">No fish logged for this spot yet.</div>';
+      spot.fish.forEach(function(fish){ html += fishRowHtml(spot, fish); });
+      html += '<details class="box"><summary>Add fish to this spot</summary>' + fishFormHtml('add-fish', spot) + '</details>';
+      html += '<div class="fish-actions"><button class="danger" data-action="delete-spot" data-spot="' + esc(spot.id) + '">Delete spot</button></div>';
+      html += '</div>';
+    }
+    html += '</section>';
+  });
+  html += '<details class="box"><summary>Add a spot</summary>' +
+    '<form class="inline-form" data-form="add-spot">' +
+      '<label>Spot name<input name="name" required placeholder="e.g. Falcon\'s Nest Dam"></label>' +
+      '<label>Water type<select name="water"><option value="fresh">Freshwater</option><option value="salt">Saltwater</option></select></label>' +
+      '<label>Notes<input name="notes" placeholder="Coordinates, landmarks, tips..."></label>' +
+      '<button type="submit" class="primary">Add spot</button>' +
+    '</form></details>';
+  return html;
+}
+
+function wishlistHtml(){
+  var rows = allFish().filter(function(r){ return r.fish.rank != null; })
+    .sort(function(a, b){ return a.fish.rank - b.fish.rank; });
+  var html = '<h2 class="section-title">Wish list - ranked rares</h2>';
+  if (!rows.length) {
+    html += '<div class="empty">Your wish list is empty. Set a "Wish rank" on a fish (Add fish or Edit) to rank your rare targets here.</div>';
+  }
+  rows.forEach(function(r, i){
+    var prev = rows[i - 1], next = rows[i + 1];
+    html += '<div class="card"><div class="push-row">' +
+      '<span class="push-num">#' + r.fish.rank + '</span>' +
+      '<div class="log-body">' +
+        '<div class="fish-main"><strong>' + esc(r.fish.name) + '</strong>' +
+          '<span class="badge ' + (r.spot.water === 'salt' ? 'water-salt' : 'water-fresh') + '">' + (r.spot.water === 'salt' ? 'Saltwater' : 'Freshwater') + '</span>' +
+          '<span class="badge ' + (r.fish.caught ? 'st-caught' : 'st-needed') + '">' + (r.fish.caught ? 'Caught' : 'Still needed') + '</span>' +
+        '</div>' +
+        '<div class="fish-meta">' + chipHtml(r.fish) + windowTextHtml(r.fish) +
+          (r.fish.weather ? '<span>Weather: ' + esc(r.fish.weather) + '</span>' : '') +
+          (r.fish.bait ? '<span>Bait: ' + esc(r.fish.bait) + '</span>' : '') +
+          '<span>Spot: ' + esc(r.spot.name) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="fish-actions">' +
+        (prev ? '<button data-action="wish-move" data-fish="' + esc(r.fish.id) + '" data-dir="up" aria-label="Rank up">Up</button>' : '') +
+        (next ? '<button data-action="wish-move" data-fish="' + esc(r.fish.id) + '" data-dir="down" aria-label="Rank down">Down</button>' : '') +
+        '<button data-action="toggle-caught" data-fish="' + esc(r.fish.id) + '">' + (r.fish.caught ? 'Mark needed' : 'Mark caught') + '</button>' +
+        '<button class="danger" data-action="wish-clear" data-fish="' + esc(r.fish.id) + '">Remove from wish list</button>' +
+      '</div>' +
+    '</div></div>';
+  });
+  return html;
+}
+
+function pushHtml(){
+  var html = '<h2 class="section-title">Push list - what you are chasing next</h2>';
+  var candidates = allFish().filter(function(r){ return !r.fish.caught && state.data.pushList.indexOf(r.fish.id) < 0; })
+    .sort(function(a, b){ return a.spot.name.localeCompare(b.spot.name); });
+  html += '<form class="inline-form" data-form="push-add">' +
+    '<label>Add a still-needed fish<select name="fish">' +
+    (candidates.length
+      ? candidates.map(function(r){ return '<option value="' + esc(r.fish.id) + '">' + esc(r.spot.name + ' - ' + r.fish.name) + '</option>'; }).join('')
+      : '<option value="">No uncaught fish available</option>') +
+    '</select></label>' +
+    '<button type="submit" class="primary"' + (candidates.length ? '' : ' disabled') + '>Add to push list</button>' +
+    '</form>';
+  if (!state.data.pushList.length) {
+    html += '<div class="empty">Push list is empty. Add fish above to build your next fishing trip.</div>';
+  }
+  state.data.pushList.forEach(function(id, i){
+    var hit = findFish(id);
+    if (!hit) return;
+    html += '<div class="card"><div class="push-row">' +
+      '<span class="push-num">' + (i + 1) + '.</span>' +
+      '<div class="log-body">' +
+        '<div class="fish-main"><strong>' + esc(hit.fish.name) + '</strong>' +
+          '<span class="badge ' + (hit.spot.water === 'salt' ? 'water-salt' : 'water-fresh') + '">' + (hit.spot.water === 'salt' ? 'Saltwater' : 'Freshwater') + '</span>' +
+          (hit.fish.rank != null ? '<span class="badge rank">Wish #' + hit.fish.rank + '</span>' : '') +
+        '</div>' +
+        '<div class="fish-meta">' + chipHtml(hit.fish) + windowTextHtml(hit.fish) +
+          (hit.fish.weather ? '<span>Weather: ' + esc(hit.fish.weather) + '</span>' : '') +
+          (hit.fish.bait ? '<span>Bait: ' + esc(hit.fish.bait) + '</span>' : '') +
+          '<span>Spot: ' + esc(hit.spot.name) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="fish-actions">' +
+        (i > 0 ? '<button data-action="push-move" data-fish="' + esc(id) + '" data-dir="up" aria-label="Move up">Up</button>' : '') +
+        (i < state.data.pushList.length - 1 ? '<button data-action="push-move" data-fish="' + esc(id) + '" data-dir="down" aria-label="Move down">Down</button>' : '') +
+        '<button class="primary" data-action="push-caught" data-fish="' + esc(id) + '">Caught it!</button>' +
+        '<button class="danger" data-action="push-remove" data-fish="' + esc(id) + '">Remove</button>' +
+      '</div>' +
+    '</div></div>';
+  });
+  return html;
+}
+
+function logHtml(){
+  var html = '<h2 class="section-title">Milestone log</h2>';
+  html += '<form class="inline-form" data-form="add-milestone">' +
+    '<label>New milestone<input name="text" required placeholder="e.g. 100 unique species caught!"></label>' +
+    '<button type="submit" class="primary">Log milestone</button></form>';
+  if (!state.data.milestones.length) {
+    html += '<div class="empty">No milestones yet. Mark a fish as caught or log one manually.</div>';
+  }
+  state.data.milestones.forEach(function(m){
+    html += '<div class="card"><div class="log-row">' +
+      '<div class="log-body">' +
+        '<div>' + esc(m.text) + '</div>' +
+        '<div class="log-date">' + esc(new Date(m.ts).toLocaleString()) + '</div>' +
+      '</div>' +
+      '<span class="badge ' + (m.kind === 'auto' ? 'kind-auto' : 'kind-manual') + '">' + (m.kind === 'auto' ? 'catch' : 'milestone') + '</span>' +
+      '<button class="danger" data-action="log-delete" data-id="' + esc(m.id) + '">Delete</button>' +
+    '</div></div>';
+  });
+  return html;
+}
+
+function setCaught(id){
+  var hit = findFish(id);
+  if (!hit) return;
+  hit.fish.caught = !hit.fish.caught;
+  if (hit.fish.caught) {
+    state.data.pushList = state.data.pushList.filter(function(x){ return x !== id; });
+    state.data.milestones.unshift({
+      id: makeId(),
+      ts: Date.now(),
+      text: 'Caught ' + hit.fish.name + ' at ' + hit.spot.name +
+        (hit.fish.bait ? ' (bait: ' + hit.fish.bait + ')' : '') +
+        ' at ' + fmtEorzean(eorzeanMinutesNow()) + ' ET',
+      kind: 'auto'
+    });
+    flash('Marked caught - added to the milestone log and removed from the push list.');
+  } else {
+    flash('Marked as still needed.');
+  }
+  save();
+  render();
+}
+function addSpot(fields){
+  var spot = { id: makeId(), name: fields.name, water: fields.water, notes: fields.notes, fish: [] };
+  state.data.spots.push(spot);
+  state.ui.expandedSpot = spot.id;
+  save();
+  render();
+  flash('Spot added.');
+}
+function deleteSpot(id){
+  var spot = state.data.spots.filter(function(s){ return s.id === id; })[0];
+  if (!spot) return;
+  if (!confirm('Delete spot "' + spot.name + '" and all its fish?')) return;
+  state.data.spots = state.data.spots.filter(function(s){ return s.id !== id; });
+  var fishIds = {};
+  spot.fish.forEach(function(f){ fishIds[f.id] = true; });
+  state.data.pushList = state.data.pushList.filter(function(x){ return !fishIds[x]; });
+  if (state.ui.expandedSpot === id) state.ui.expandedSpot = null;
+  save();
+  render();
+  flash('Spot deleted.');
+}
+function fishFieldsFromForm(fd){
+  var name = fv(fd, 'name');
+  if (!name) return { error: 'Fish name is required.' };
+  var winStr = fv(fd, 'window');
+  var w = winStr ? parseWindow(winStr) : null;
+  if (winStr && !w) return { error: 'Invalid window format. Use 8:00-12:00 (Eorzean time).' };
+  var rankRaw = fv(fd, 'rank');
+  var rank = null;
+  if (rankRaw) {
+    rank = Math.floor(Number(rankRaw));
+    if (!isFinite(rank) || rank < 1) return { error: 'Wish rank must be a positive number.' };
+  }
+  return { fields: { name: name, window: w ? fmtWindow(w) : '', weather: fv(fd, 'weather'), bait: fv(fd, 'bait'), rank: rank } };
+}
+function addFish(spotId, fields){
+  var spot = state.data.spots.filter(function(s){ return s.id === spotId; })[0];
+  if (!spot) return;
+  spot.fish.push({ id: makeId(), name: fields.name, window: fields.window, weather: fields.weather, bait: fields.bait, caught: false, rank: fields.rank });
+  save();
+  render();
+  flash('Fish added to ' + spot.name + '.');
+}
+function updateFish(id, fields){
+  var hit = findFish(id);
+  if (!hit) return;
+  hit.fish.name = fields.name;
+  hit.fish.window = fields.window;
+  hit.fish.weather = fields.weather;
+  hit.fish.bait = fields.bait;
+  hit.fish.rank = fields.rank;
+  save();
+  state.ui.editingFish = null;
+  render();
+  flash('Fish updated.');
+}
+function deleteFish(id){
+  var hit = findFish(id);
+  if (!hit) return;
+  if (!confirm('Delete "' + hit.fish.name + '"?')) return;
+  hit.spot.fish = hit.spot.fish.filter(function(f){ return f.id !== id; });
+  state.data.pushList = state.data.pushList.filter(function(x){ return x !== id; });
+  if (state.ui.editingFish === id) state.ui.editingFish = null;
+  save();
+  render();
+  flash('Fish deleted.');
+}
+function wishMove(id, dir){
+  var rows = allFish().filter(function(r){ return r.fish.rank != null; })
+    .sort(function(a, b){ return a.fish.rank - b.fish.rank; });
+  var idx = -1;
+  for (var i = 0; i < rows.length; i++) if (rows[i].fish.id === id) idx = i;
+  if (idx < 0) return;
+  var other = dir === 'up' ? rows[idx - 1] : rows[idx + 1];
+  if (!other) return;
+  var hit = findFish(id);
+  var tmp = hit.fish.rank;
+  hit.fish.rank = other.fish.rank;
+  other.fish.rank = tmp;
+  save();
+  render();
+}
+function wishClear(id){
+  var hit = findFish(id);
+  if (!hit) return;
+  hit.fish.rank = null;
+  save();
+  render();
+  flash('Removed from wish list.');
+}
+function pushAdd(id){
+  if (!id) { flash('Nothing selected.', false); return; }
+  var hit = findFish(id);
+  if (!hit) return;
+  if (hit.fish.caught) { flash(hit.fish.name + ' is already caught.', false); return; }
+  if (state.data.pushList.indexOf(id) >= 0) { flash('Already on the push list.', false); return; }
+  state.data.pushList.push(id);
+  save();
+  render();
+  flash(hit.fish.name + ' added to the push list.');
+}
+function pushRemove(id){
+  state.data.pushList = state.data.pushList.filter(function(x){ return x !== id; });
+  save();
+  render();
+}
+function pushMove(id, dir){
+  var list = state.data.pushList;
+  var i = list.indexOf(id);
+  var j = dir === 'up' ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  var tmp = list[i];
+  list[i] = list[j];
+  list[j] = tmp;
+  save();
+  render();
+}
+function addMilestone(text){
+  state.data.milestones.unshift({ id: makeId(), ts: Date.now(), text: text, kind: 'manual' });
+  save();
+  render();
+  flash('Milestone logged.');
+}
+function deleteMilestone(id){
+  state.data.milestones = state.data.milestones.filter(function(m){ return m.id !== id; });
+  save();
+  render();
+}
+function resetAll(){
+  if (!confirm('Delete ALL data (spots, fish, wish list, push list, milestones)? This cannot be undone.')) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  state.data = migrateData(null);
+  state.ui.expandedSpot = null;
+  save();
+  render();
+  flash('All data cleared. Fresh start!');
+}
+function exportData(){
+  try {
+    var blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ffxiv-fishing-log-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    flash('Backup exported.');
+  } catch (e) {
+    flash('Export failed in this browser.', false);
+  }
+}
+function importText(text){
+  var data;
+  try { data = migrateData(JSON.parse(text)); }
+  catch (e) { flash('Import failed: not a valid backup file.', false); return; }
+  if (!confirm('Replace current data with the imported backup?')) return;
+  state.data = data;
+  state.ui.expandedSpot = null;
+  save();
+  render();
+  flash('Backup imported.');
+}
+
+function renderClock(){
+  var c = el('et-clock');
+  if (c) c.textContent = fmtEorzean(eorzeanMinutesNow());
+  var r = el('real-date');
+  if (r) r.textContent = 'Your local time: ' + new Date().toLocaleTimeString();
+}
+function updateChips(){
+  var chips = document.querySelectorAll('[data-chip-window]');
+  for (var i = 0; i < chips.length; i++) {
+    var c = chips[i];
+    var w = parseWindow(c.getAttribute('data-window') || '');
+    if (!w) continue;
+    var d = describeWindow(w, eorzeanMinutesNow());
+    c.textContent = d.text;
+    if (c.classList) {
+      c.classList[d.open ? 'add' : 'remove']('open');
+      c.classList[d.open ? 'remove' : 'add']('closed');
+    }
+  }
+}
+var tickCount = 0;
+function tick(){
+  tickCount++;
+  renderClock();
+  if (tickCount % 5 === 0) updateChips();
+}
+
+function onDocClick(ev){
+  var t = ev.target;
+  if (!t || typeof t.closest !== 'function') return;
+  var btn = t.closest('[data-action]');
+  if (!btn) return;
+  var a = btn.getAttribute('data-action');
+  var fishId = btn.getAttribute('data-fish');
+  var spotId = btn.getAttribute('data-spot');
+  if (a === 'tab') { state.ui.tab = btn.getAttribute('data-tab'); render(); }
+  else if (a === 'filter') { state.ui.filter = btn.getAttribute('data-filter'); render(); }
+  else if (a === 'toggle-spot') { state.ui.expandedSpot = state.ui.expandedSpot === spotId ? null : spotId; render(); }
+  else if (a === 'toggle-caught') setCaught(fishId);
+  else if (a === 'push-add') pushAdd(fishId);
+  else if (a === 'push-caught') setCaught(fishId);
+  else if (a === 'push-remove') pushRemove(fishId);
+  else if (a === 'push-move') pushMove(fishId, btn.getAttribute('data-dir'));
+  else if (a === 'wish-move') wishMove(fishId, btn.getAttribute('data-dir'));
+  else if (a === 'wish-clear') wishClear(fishId);
+  else if (a === 'edit-fish') { state.ui.editingFish = fishId; render(); }
+  else if (a === 'cancel-edit') { state.ui.editingFish = null; render(); }
+  else if (a === 'delete-fish') deleteFish(fishId);
+  else if (a === 'delete-spot') deleteSpot(spotId);
+  else if (a === 'log-delete') deleteMilestone(btn.getAttribute('data-id'));
+  else if (a === 'export') exportData();
+  else if (a === 'reset') resetAll();
+}
+function onDocSubmit(ev){
+  var f = ev.target;
+  if (!f || !f.getAttribute) return;
+  var kind = f.getAttribute('data-form');
+  if (!kind) return;
+  ev.preventDefault();
+  var fd = new FormData(f);
+  if (kind === 'add-spot') {
+    var name = fv(fd, 'name');
+    if (!name) { flash('Spot name is required.', false); render(); return; }
+    addSpot({ name: name, water: fv(fd, 'water') === 'salt' ? 'salt' : 'fresh', notes: fv(fd, 'notes') });
+  } else if (kind === 'add-fish') {
+    var res = fishFieldsFromForm(fd);
+    if (res.error) { flash(res.error, false); render(); return; }
+    addFish(f.getAttribute('data-spot'), res.fields);
+  } else if (kind === 'edit-fish') {
+    var res2 = fishFieldsFromForm(fd);
+    if (res2.error) { flash(res2.error, false); render(); return; }
+    updateFish(f.getAttribute('data-fish'), res2.fields);
+  } else if (kind === 'push-add') {
+    pushAdd(fv(fd, 'fish'));
+  } else if (kind === 'add-milestone') {
+    var text = fv(fd, 'text');
+    if (!text) { flash('Milestone text is required.', false); render(); return; }
+    addMilestone(text);
+  }
+}
+function onDocChange(ev){
+  var t = ev.target;
+  if (!t || t.id !== 'import-file') return;
+  var file = t.files && t.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){ importText(String(reader.result)); };
+  reader.readAsText(file);
+  t.value = '';
+}
+
+function appInit(){
+  state.data = load();
+  if (!state.data) {
+    state.data = migrateData(buildSeed());
+    save();
+    if (state.data.spots[0]) state.ui.expandedSpot = state.data.spots[0].id;
+  }
+  document.addEventListener('click', onDocClick);
+  document.addEventListener('submit', onDocSubmit);
+  document.addEventListener('change', onDocChange);
+  render();
+  renderClock();
+  setInterval(tick, 1000);
+}
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', appInit);
+  else appInit();
+}
+</script>
+</body>
+</html>
